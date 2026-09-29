@@ -1,0 +1,61 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    env:
+      AGENT_API_KEY: ci-test-key
+      REDIS_URL: "fake://"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run pytest
+        run: |
+          pytest tests/ -v --ignore=tests/test_cp5.py --ignore=tests/test_bonus_cicd.py -m "not docker"
+
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t day12-agent:latest .
+
+  deploy:
+    name: Deploy to Production
+    needs: [test, build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Deploy
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          echo "Deploying to Render via deploy hook if available..."
+          if [ -n "$RENDER_DEPLOY_HOOK" ]; then
+            curl -f -X POST "$RENDER_DEPLOY_HOOK"
+          else
+            echo "RENDER_DEPLOY_HOOK secret is not set, skipping remote trigger."
+          fi
