@@ -124,3 +124,6 @@ x-render-origin-server: uvicorn
 
 - `screenshots/dashboard.png` — trang quản lý service trên platform
 - `screenshots/health.png` — kết quả gọi `/health` từ trình duyệt hoặc curl
+- `screenshots/build_log.png` — log build Docker multi-stage trên Render
+- `screenshots/console_log.png` — console log chạy `python grade.py` và kiểm tra endpoint
+
